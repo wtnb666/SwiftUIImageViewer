@@ -11,7 +11,7 @@ struct ContentView: View {
         UIImage(named: "image4")!,
         UIImage(named: "image5")!
     ]
-    
+
     var body: some View {
         
         ScrollViewReader { reader in
@@ -64,6 +64,9 @@ struct ImageViewer: View {
     let onClose: (() -> Void)?
     let hStackSpacing: CGFloat = 16
     @State private var dragStartAxis: DragAxis? = nil
+    @State private var currentScale: CGFloat = 1.0
+    @State private var previousScale: CGFloat = 1.0
+    @State private var previousTranslation = CGSize.zero
     
     enum DragAxis {
         case horizontal
@@ -72,7 +75,7 @@ struct ImageViewer: View {
     }
     
     var isDissmissDragging: Bool {
-        abs(imageOffsetSize.width) > 0 || abs(imageOffsetSize.height) > 0
+        currentScale > 1 || abs(imageOffsetSize.width) > 0 || abs(imageOffsetSize.height) > 0
     }
     
     init(index: Int, pageSize: CGSize, images: [UIImage], namespace: Namespace.ID, onChangeIndex: ((_ index: Int) -> Void)?, onClose: ( () -> Void)?) {
@@ -85,10 +88,13 @@ struct ImageViewer: View {
         self.onClose = onClose
     }
     
-    
     var dragGesture: some Gesture {
         DragGesture(coordinateSpace: .global)
             .onChanged { value in
+                if currentScale > 1 {
+                    self.imageOffsetSize = CGSize(width: previousTranslation.width + value.translation.width / currentScale, height: previousTranslation.height + value.translation.height / currentScale)
+                    return
+                }
                 switch dragStartAxis {
                 case .horizontal:
                     if value.translation.width > 0 && index == 0 {
@@ -111,6 +117,10 @@ struct ImageViewer: View {
                 }
             }
             .onEnded { value in
+                if currentScale > 1 {
+                    self.previousTranslation = self.imageOffsetSize
+                    return
+                }
                 switch dragStartAxis {
                 case .horizontal:
                     var targetIndex = index
@@ -141,10 +151,30 @@ struct ImageViewer: View {
             }
     }
     
+    var panGesture: some Gesture {
+        MagnificationGesture()
+            .onChanged { value in
+                let delta = value / previousScale
+                previousScale = value
+                let nextScale = min(max((currentScale * delta), 1), 3)
+                currentScale = nextScale
+            }
+            .onEnded { value in
+                previousScale = 1.0
+                if currentScale < 1.1 {
+                    previousTranslation = .zero
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        currentScale = 1
+                        imageOffsetSize = .zero
+                    }
+                }
+            }
+    }
+    
     var body: some View {
         ZStack {
             Color.white
-                .opacity(1.0 - (imageOffsetSize.height / pageSize.height))
+                .opacity(currentScale != 1 ? 1 : 1.0 - (imageOffsetSize.height / pageSize.height))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .ignoresSafeArea()
             
@@ -155,6 +185,7 @@ struct ImageViewer: View {
                             .matchedGeometryEffect(id: offset, in: namespace)
                             .frame(width: pageSize.width, height: pageSize.height)
                             .offset(imageOffsetSize)
+                            .scaleEffect(currentScale)
                     } else {
                         ImagePreviewView(image: image)
                             .frame(width: pageSize.width, height: pageSize.height)
@@ -164,6 +195,7 @@ struct ImageViewer: View {
             .frame(width: (pageSize.width + hStackSpacing) * CGFloat(images.count) - hStackSpacing, height: pageSize.height)
             .offset(offsetSize)
             .gesture(dragGesture)
+            .simultaneousGesture(panGesture)
             
             Button(action: {
                 onClose?()
