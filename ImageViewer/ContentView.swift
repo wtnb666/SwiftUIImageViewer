@@ -114,18 +114,16 @@ struct ImageViewer: View {
                 switch dragStartAxis {
                 case .horizontal:
                     var targetIndex = index
-                    if value.predictedEndTranslation.width < -pageSize.width / 2 && index + 1 < images.count {
+                    if value.predictedEndTranslation.width < -pageSize.width / 3 && index + 1 < images.count {
                         targetIndex += 1
-                    } else if value.predictedEndTranslation.width > pageSize.width / 2 && index > 0 {
+                    } else if value.predictedEndTranslation.width > pageSize.width / 3 && index > 0 {
                         targetIndex -= 1
                     }
+                    index = targetIndex
+                    onChangeIndex?(targetIndex)
                     withAnimation(.easeOut(duration: 0.2)) {
                         self.offsetSize = CGSize(width: -(pageSize.width + hStackSpacing) * CGFloat(targetIndex), height: 0)
                     }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(200), execute: {
-                        index = targetIndex
-                        onChangeIndex?(targetIndex)
-                    })
                 case .verticalUp:
                     break
                 case .verticalDown:
@@ -146,10 +144,9 @@ struct ImageViewer: View {
     var body: some View {
         ZStack {
             Color.white
-                .opacity(1.0 - (imageOffsetSize.height * 3 / pageSize.height))
+                .opacity(1.0 - (imageOffsetSize.height / pageSize.height))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .ignoresSafeArea()
-            
             
             HStack(spacing: hStackSpacing) {
                 ForEach(Array(images.enumerated()), id: \.offset) { offset, image in
@@ -167,18 +164,20 @@ struct ImageViewer: View {
             .frame(width: (pageSize.width + hStackSpacing) * CGFloat(images.count) - hStackSpacing, height: pageSize.height)
             .offset(offsetSize)
             .gesture(dragGesture)
+            
+            Button(action: {
+                onClose?()
+            }, label: {
+                Text("Close")
+            })
+            .disabled(isDissmissDragging)
+            .opacity(isDissmissDragging ? 0 : 1)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .padding()
         }
         
         
-        Button(action: {
-            onClose?()
-        }, label: {
-            Text("Close")
-        })
-        .disabled(isDissmissDragging)
-        .opacity(isDissmissDragging ? 0 : 1)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding()
+        
     }
 }
 
