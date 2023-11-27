@@ -118,7 +118,19 @@ struct ImageViewer: View {
             }
             .onEnded { value in
                 if currentScale > 1 {
-                    self.previousTranslation = self.imageOffsetSize
+                    let imageRadio = images[index].size.height / images[index].size.width
+                    let maxOffsetWidth = (pageSize.width * currentScale - pageSize.width) / 2 / currentScale
+                    let minOffsetWidth = -maxOffsetWidth
+                    let offsetWidth = max(minOffsetWidth, min(maxOffsetWidth, previousTranslation.width + value.predictedEndTranslation.width / currentScale))
+                    let maxOffsetHeight = (pageSize.width * imageRadio * currentScale - pageSize.height) / 2 / currentScale
+                    let minOffsetHeight = -maxOffsetHeight
+                    let offsetHeight = max(minOffsetHeight, min(maxOffsetHeight, previousTranslation.height + value.predictedEndTranslation.height / currentScale))
+                    let size = CGSize(width: offsetWidth, height: offsetHeight)
+                    self.previousTranslation = size
+                    withAnimation(.smooth) {
+                        self.imageOffsetSize = size
+                    }
+
                     return
                 }
                 switch dragStartAxis {
@@ -151,7 +163,7 @@ struct ImageViewer: View {
             }
     }
     
-    var panGesture: some Gesture {
+    var pinchImageGesture: some Gesture {
         MagnificationGesture()
             .onChanged { value in
                 let delta = value / previousScale
@@ -194,8 +206,9 @@ struct ImageViewer: View {
             }
             .frame(width: (pageSize.width + hStackSpacing) * CGFloat(images.count) - hStackSpacing, height: pageSize.height)
             .offset(offsetSize)
+            .contentShape(Rectangle())
             .gesture(dragGesture)
-            .simultaneousGesture(panGesture)
+            .simultaneousGesture(pinchImageGesture)
             
             Button(action: {
                 onClose?()
