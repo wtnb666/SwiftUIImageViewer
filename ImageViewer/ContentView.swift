@@ -9,6 +9,11 @@ struct ContentView: View {
         UIImage(named: "image2")!,
         UIImage(named: "image3")!,
         UIImage(named: "image4")!,
+        UIImage(named: "image5")!,
+        UIImage(named: "image1")!,
+        UIImage(named: "image2")!,
+        UIImage(named: "image3")!,
+        UIImage(named: "image4")!,
         UIImage(named: "image5")!
     ]
 
@@ -26,7 +31,7 @@ struct ContentView: View {
                                 .matchedGeometryEffect(id: index, in: namespace)
                                 .onTapGesture {
                                     self.selectedIndex = index
-                                    withAnimation(.easeOut(duration: 0.3)) {
+                                    withAnimation(.spring(duration: 0.3)) {
                                         self.isPreviewing = true
                                     }
                                 }
@@ -41,7 +46,7 @@ struct ContentView: View {
                             self.selectedIndex = changed
                             reader.scrollTo(changed)
                         }) {
-                            withAnimation(.easeOut(duration: 0.3)) {
+                            withAnimation(.spring(duration: 0.3)) {
                                 self.isPreviewing = false
                             }
                         }
@@ -89,7 +94,7 @@ struct ImageViewer: View {
     }
     
     var dragGesture: some Gesture {
-        DragGesture(coordinateSpace: .global)
+        DragGesture(minimumDistance: 1, coordinateSpace: .global)
             .onChanged { value in
                 if currentScale > 1 {
                     self.imageOffsetSize = CGSize(width: previousTranslation.width + value.translation.width / currentScale, height: previousTranslation.height + value.translation.height / currentScale)
@@ -143,7 +148,7 @@ struct ImageViewer: View {
                     }
                     index = targetIndex
                     onChangeIndex?(targetIndex)
-                    withAnimation(.easeOut(duration: 0.2)) {
+                    withAnimation(.smooth(duration: 0.25)) {
                         self.offsetSize = CGSize(width: -(pageSize.width + hStackSpacing) * CGFloat(targetIndex), height: 0)
                     }
                 case .verticalUp:
@@ -152,7 +157,7 @@ struct ImageViewer: View {
                     if value.translation.height > 0 {
                         onClose?()
                     } else {
-                        withAnimation(.easeOut(duration: 0.2)) {
+                        withAnimation(.smooth(duration: 0.2)) {
                             self.imageOffsetSize = .zero
                         }
                     }
